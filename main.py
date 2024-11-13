@@ -48,4 +48,27 @@ recognizer.recognize_async(mp_image, frame_timestamp_ms)
 # listener with the recognition result every time it has finished processing an
 # input frame. If the recognition function is called when the Gesture Recognizer
 # task is busy processing another frame, the task will ignore the new input frame.
-    
+
+# TODO List:
+# 1. Capture live video feed from the webcam using OpenCV.
+# 2. Convert the OpenCV frame to a MediaPipe Image object.
+# 3. Send the image to the Gesture Recognizer for gesture recognition.
+# 4. Display the recognized gesture on the frame.
+# 5. Display the frame with the recognized gesture in a window.
+# 6. Repeat steps 1-5 for every frame captured from the webcam.
+
+# 7. Implement a gesture recognition model using MediaPipe’s Gesture Recognizer.
+# 8. Teach the model the new required gestures.
+# 9. Test the model with the new gestures.
+
+# 10. Implement an API to get today's wordle solution.
+# 11. Implement a simple wordle game.
+
+# 12. Implement graphic interface to show the letters corresponding to the gestures.
+# 13. Implement graphic interface for the wordle game.
+
+# 14. Implement a typo-correcting model.
+# 15. Do... something???
+
+# 16. Implement video gesture recognition.
+# 17. Implement image gesture recognition.
