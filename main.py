@@ -3,6 +3,8 @@
 #run: sudo apt-get install python3-opencv
 import mediapipe as mp
 import cv2 as cv
+import numpy as np
+import sys
 from mediapipe.tasks import python
 from mediapipe.tasks.python import vision
 
@@ -17,10 +19,10 @@ VisionRunningMode = mp.tasks.vision.RunningMode
 model_path = '/home/ralu/ia4/sign-language-detector/gesture_recognizer.task' # change path as needed (input? detection?)
 
 # Create a gesture recognizer instance with the image mode:
-options = GestureRecognizerOptions(
-    base_options=BaseOptions(model_asset_path=model_path),
-    running_mode=VisionRunningMode.LIVE_STREAM)
-with GestureRecognizer.create_from_options(options) as recognizer:
+# options = GestureRecognizerOptions(
+#     base_options=BaseOptions(model_asset_path=model_path),
+#     running_mode=VisionRunningMode.LIVE_STREAM)
+# with GestureRecognizer.create_from_options(options) as recognizer:
   # The detector is initialized. Use it here.
   # ...
     
@@ -28,8 +30,38 @@ with GestureRecognizer.create_from_options(options) as recognizer:
 # Create a loop to read the latest frame from the camera using VideoCapture#read()
 # Convert the frame received from OpenCV to a MediaPipe’s Image object.
 
+cam = cv.VideoCapture(0, cv.CAP_DSHOW)
+
+# Get the default frame width and height
+frame_width = int(cam.get(cv.CAP_PROP_FRAME_WIDTH))
+frame_height = int(cam.get(cv.CAP_PROP_FRAME_HEIGHT))
+print(frame_width, frame_height)
+
+# Define the codec and create VideoWriter object
+fourcc = cv.VideoWriter_fourcc(*'mp4v')
+out = cv.VideoWriter('/home/ralu/ia4/sign-language-detector/output.mp4', fourcc, 20.0, (frame_width, frame_height))
+
+while True:
+    ret, frame = cam.read()
+
+    # Write the frame to the output file
+    if (ret):
+      out.write(frame)
+
+      # Display the captured frame
+      cv.imshow('Camera', frame)
+
+    # Press 'q' to exit the loop
+    if cv.waitKey(1) == ord('q'):
+        break
+
+# Release the capture and writer objects
+cam.release()
+out.release()
+cv.destroyAllWindows()
+
 # Load the last frame as a numpy array into mediapipe
-mp_image = mp.Image(image_format=mp.ImageFormat.SRGB, data=numpy_frame_from_opencv)
+# mp_image = mp.Image(image_format=mp.ImageFormat.SRGB, data=numpy_frame_from_opencv)
 
 # The Gesture Recognizer uses the recognize (for images), recognize_for_video (for video)
 # and recognize_async (for live) functions to trigger inferences. For gesture recognition,
@@ -40,7 +72,7 @@ mp_image = mp.Image(image_format=mp.ImageFormat.SRGB, data=numpy_frame_from_open
 # The results are accessible via the `result_callback` provided in
 # the `GestureRecognizerOptions` object.
 # The gesture recognizer must be created with the live stream mode.
-recognizer.recognize_async(mp_image, frame_timestamp_ms)
+# recognizer.recognize_async(mp_image, frame_timestamp_ms)
 # When running in the video mode or the live stream mode, you must
 # also provide the Gesture Recognizer task the timestamp of the input frame.
 # When running in the live stream mode, the Gesture Recognizer task doesn’t
