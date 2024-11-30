@@ -1,7 +1,7 @@
 #run: python -m pip install mediapipe
 #run: !wget -q https://storage.googleapis.com/mediapipe-models/gesture_recognizer/gesture_recognizer/float16/1/gesture_recognizer.task
 #run: sudo apt-get install python3-opencv
-import mediapipe as mp
+import mediapipe as mp # type: ignore
 import cv2 as cv
 import numpy as np
 import sys
@@ -46,22 +46,18 @@ while True:
 
     # Write the frame to the output file
     if (ret):
-      out.write(frame)
+      # out.write(frame)
+      mp_image = mp.Image(image_format=mp.ImageFormat.SRGB, data=frame)
 
       # Display the captured frame
-      cv.imshow('Camera', frame)
+      # cv.imshow('Camera', frame)
 
     # Press 'q' to exit the loop
     if cv.waitKey(1) == ord('q'):
         break
 
-# Release the capture and writer objects
-cam.release()
-out.release()
-cv.destroyAllWindows()
 
 # Load the last frame as a numpy array into mediapipe
-# mp_image = mp.Image(image_format=mp.ImageFormat.SRGB, data=numpy_frame_from_opencv)
 
 # The Gesture Recognizer uses the recognize (for images), recognize_for_video (for video)
 # and recognize_async (for live) functions to trigger inferences. For gesture recognition,
@@ -80,6 +76,11 @@ cv.destroyAllWindows()
 # listener with the recognition result every time it has finished processing an
 # input frame. If the recognition function is called when the Gesture Recognizer
 # task is busy processing another frame, the task will ignore the new input frame.
+
+# Release the capture and writer objects
+cam.release()
+out.release()
+cv.destroyAllWindows()
 
 # TODO List:
 # 1. Capture live video feed from the webcam using OpenCV.
