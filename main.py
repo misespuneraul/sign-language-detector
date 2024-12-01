@@ -42,6 +42,7 @@ recognizer = GestureRecognizer.create_from_options(options)
 # Convert the frame received from OpenCV to a MediaPipe’s Image object.
 
 cam = cv.VideoCapture(0, cv.CAP_DSHOW)
+start_time = cv.getTickCount()
 
 # Get the default frame width and height
 frame_width = int(cam.get(cv.CAP_PROP_FRAME_WIDTH))
@@ -58,7 +59,8 @@ while True:
     if (ret):
       out.write(frame)
       mp_image = mp.Image(image_format=mp.ImageFormat.SRGB, data=frame)
-      frame_timestamp_ms = int(time.perf_counter() * 1000)
+      # frame_timestamp_ms = int(time.perf_counter() * 20)
+      frame_timestamp_ms = int((cv.getTickCount() - start_time) * 1000 / cv.getTickFrequency())
       recognizer.recognize_async(mp_image, frame_timestamp_ms)
 
       # Display the captured frame
