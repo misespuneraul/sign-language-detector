@@ -3,6 +3,7 @@
 #run: sudo apt-get install python3-opencv
 import mediapipe as mp # type: ignore
 import cv2 as cv
+import time
 import numpy as np
 import sys
 from mediapipe.tasks import python
@@ -16,16 +17,26 @@ GestureRecognizer = mp.tasks.vision.GestureRecognizer
 GestureRecognizerOptions = mp.tasks.vision.GestureRecognizerOptions
 VisionRunningMode = mp.tasks.vision.RunningMode
 
-model_path = '/home/ralu/ia4/sign-language-detector/gesture_recognizer.task' # change path as needed (input? detection?)
+model_path = 'gesture_recognizer.task' # change path as needed (input? detection?)
 
-# Create a gesture recognizer instance with the image mode:
-# options = GestureRecognizerOptions(
-#     base_options=BaseOptions(model_asset_path=model_path),
-#     running_mode=VisionRunningMode.LIVE_STREAM)
-# with GestureRecognizer.create_from_options(options) as recognizer:
-  # The detector is initialized. Use it here.
-  # ...
-    
+BaseOptions = mp.tasks.BaseOptions
+GestureRecognizer = mp.tasks.vision.GestureRecognizer
+GestureRecognizerOptions = mp.tasks.vision.GestureRecognizerOptions
+GestureRecognizerResult = mp.tasks.vision.GestureRecognizerResult
+VisionRunningMode = mp.tasks.vision.RunningMode
+
+
+# Create a gesture recognizer instance with the live stream mode:
+def print_result(result: GestureRecognizerResult, output_image: mp.Image, timestamp_ms: int):
+    print('gesture recognition result: {}'.format(result))
+
+
+options = GestureRecognizerOptions(
+    base_options=BaseOptions(model_asset_path=model_path),
+    running_mode=VisionRunningMode.LIVE_STREAM,
+    result_callback=print_result)
+recognizer = GestureRecognizer.create_from_options(options)
+
 # Use OpenCV’s VideoCapture to start capturing from the webcam.
 # Create a loop to read the latest frame from the camera using VideoCapture#read()
 # Convert the frame received from OpenCV to a MediaPipe’s Image object.
@@ -35,27 +46,27 @@ cam = cv.VideoCapture(0, cv.CAP_DSHOW)
 # Get the default frame width and height
 frame_width = int(cam.get(cv.CAP_PROP_FRAME_WIDTH))
 frame_height = int(cam.get(cv.CAP_PROP_FRAME_HEIGHT))
-print(frame_width, frame_height)
 
 # Define the codec and create VideoWriter object
 fourcc = cv.VideoWriter_fourcc(*'mp4v')
-out = cv.VideoWriter('/home/ralu/ia4/sign-language-detector/output.mp4', fourcc, 20.0, (frame_width, frame_height))
+out = cv.VideoWriter('output.mp4', fourcc, 20.0, (frame_width, frame_height))
 
 while True:
     ret, frame = cam.read()
 
     # Write the frame to the output file
     if (ret):
-      # out.write(frame)
+      out.write(frame)
       mp_image = mp.Image(image_format=mp.ImageFormat.SRGB, data=frame)
+      frame_timestamp_ms = int(time.perf_counter() * 1000)
+      recognizer.recognize_async(mp_image, frame_timestamp_ms)
 
       # Display the captured frame
-      # cv.imshow('Camera', frame)
+      cv.imshow('Camera', frame)
 
     # Press 'q' to exit the loop
     if cv.waitKey(1) == ord('q'):
         break
-
 
 # Load the last frame as a numpy array into mediapipe
 
