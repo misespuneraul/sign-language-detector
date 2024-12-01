@@ -25,12 +25,17 @@ GestureRecognizerOptions = mp.tasks.vision.GestureRecognizerOptions
 GestureRecognizerResult = mp.tasks.vision.GestureRecognizerResult
 VisionRunningMode = mp.tasks.vision.RunningMode
 
+center = [(0, 0) for _ in range(21)]
 
 # Create a gesture recognizer instance with the live stream mode:
 def print_result(result: GestureRecognizerResult, output_image: mp.Image, timestamp_ms: int):
     print('gesture recognition result: {}'.format(result))
-
-
+    global center;
+    if (result.hand_landmarks.__sizeof__() == 40):
+        center = [(0, 0) for _ in range(21)]
+    for landmark in result.hand_landmarks:
+        for i in range(0, 21):
+            center[i] = (int(frame_width * landmark[i].x), int(frame_height * landmark[i].y))
 options = GestureRecognizerOptions(
     base_options=BaseOptions(model_asset_path=model_path),
     running_mode=VisionRunningMode.LIVE_STREAM,
@@ -57,11 +62,16 @@ while True:
 
     # Write the frame to the output file
     if (ret):
-      out.write(frame)
       mp_image = mp.Image(image_format=mp.ImageFormat.SRGB, data=frame)
       # frame_timestamp_ms = int(time.perf_counter() * 20)
       frame_timestamp_ms = int((cv.getTickCount() - start_time) * 1000 / cv.getTickFrequency())
       recognizer.recognize_async(mp_image, frame_timestamp_ms)
+      radius = 2
+      color = (239, 3, 7)
+      thickness = 2
+      for i in range(0, 21):
+          cv.circle(frame, center[i], radius, color, thickness)
+      out.write(frame)
 
       # Display the captured frame
       cv.imshow('Camera', frame)
