@@ -1,7 +1,7 @@
 #run: python -m pip install mediapipe
 #run: !wget -q https://storage.googleapis.com/mediapipe-models/gesture_recognizer/gesture_recognizer/float16/1/gesture_recognizer.task
 #run: sudo apt-get install python3-opencv
-import mediapipe as mp # type: ignore
+import mediapipe as mp
 import cv2 as cv
 import time
 import numpy as np
