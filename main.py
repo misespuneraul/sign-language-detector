@@ -15,7 +15,7 @@ GestureRecognizerOptions = mp.tasks.vision.GestureRecognizerOptions
 VisionRunningMode = mp.tasks.vision.RunningMode
 
 model_path = 'gesture_recognizer.task'# change path as needed (input? detection?)
-with open('list.in', 'r') as file:
+with open('wordle/words.txt', 'r') as file:
     possibilities = [line.strip() for line in file.readlines()]
 
 BaseOptions = mp.tasks.BaseOptions
