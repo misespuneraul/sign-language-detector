@@ -3,11 +3,8 @@
 #run: sudo apt-get install python3-opencv
 import mediapipe as mp
 import cv2 as cv
-import time
-import numpy as np
-import sys
 from mediapipe.tasks import python
-from mediapipe.tasks.python import vision
+import difflib
 
 # print(cv.__version__) # project written in 4.10.0
 
@@ -17,7 +14,9 @@ GestureRecognizer = mp.tasks.vision.GestureRecognizer
 GestureRecognizerOptions = mp.tasks.vision.GestureRecognizerOptions
 VisionRunningMode = mp.tasks.vision.RunningMode
 
-model_path = 'gesture_recognizer.task' # change path as needed (input? detection?)
+model_path = 'gesture_recognizer.task'# change path as needed (input? detection?)
+with open('list.in', 'r') as file:
+    possibilities = [line.strip() for line in file.readlines()]
 
 BaseOptions = mp.tasks.BaseOptions
 GestureRecognizer = mp.tasks.vision.GestureRecognizer
@@ -65,7 +64,7 @@ frame_height = int(cam.get(cv.CAP_PROP_FRAME_HEIGHT))
 # Define the codec and create VideoWriter object
 fourcc = cv.VideoWriter_fourcc(*'mp4v')
 out = cv.VideoWriter('output.mp4', fourcc, 20.0, (frame_width, frame_height))
-letters = []
+letters = ""
 while True:
     ret, frame = cam.read()
 
@@ -117,13 +116,17 @@ while True:
     # Press 'q' to exit the loop
     if (category == "" or category == "not detected" or category == "none"):
         last = cv.getTickCount()
+        score = 0
     if (category != "" and category != "not detected" and category != "none" and cv.getTickCount() - last >= 2000000000):
-        letters.append(category)
+        letters += category
         print(letters)
         last = cv.getTickCount()
     if cv.waitKey(1) == ord('q'):
         break
 
+letters = letters.lower()
+result = difflib.get_close_matches(letters, possibilities)
+print(result)
 # Load the last frame as a numpy array into mediapipe
 
 # The Gesture Recognizer uses the recognize (for images), recognize_for_video (for video)
