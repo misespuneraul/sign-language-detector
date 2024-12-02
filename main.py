@@ -64,7 +64,7 @@ frame_height = int(cam.get(cv.CAP_PROP_FRAME_HEIGHT))
 # Define the codec and create VideoWriter object
 fourcc = cv.VideoWriter_fourcc(*'mp4v')
 out = cv.VideoWriter('output.mp4', fourcc, 20.0, (frame_width, frame_height))
-
+letters = []
 while True:
     ret, frame = cam.read()
 
@@ -114,9 +114,13 @@ while True:
       cv.imshow('Camera', frame)
 
     # Press 'q' to exit the loop
-    if cv.waitKey(1) == ord('q'):
+    key = cv.waitKey(1) & 0xFF
+    if key == ord('y'):
+        letters.append(category)
+    if key == ord('q'):
         break
 
+print(letters)
 # Load the last frame as a numpy array into mediapipe
 
 # The Gesture Recognizer uses the recognize (for images), recognize_for_video (for video)

@@ -10,12 +10,10 @@ import matplotlib.pyplot as pltpytho
 
 dataset_path = "data/GestureImageData"
 
-print(dataset_path)
 labels = []
 for i in os.listdir(dataset_path):
   if os.path.isdir(os.path.join(dataset_path, i)):
     labels.append(i)
-print(labels)
 
 data = gesture_recognizer.Dataset.from_folder(
     dirname=dataset_path,
