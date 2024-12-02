@@ -56,6 +56,7 @@ recognizer = GestureRecognizer.create_from_options(options)
 
 cam = cv.VideoCapture(0, cv.CAP_DSHOW)
 start_time = cv.getTickCount()
+last = start_time
 
 # Get the default frame width and height
 frame_width = int(cam.get(cv.CAP_PROP_FRAME_WIDTH))
@@ -114,13 +115,15 @@ while True:
       cv.imshow('Camera', frame)
 
     # Press 'q' to exit the loop
-    key = cv.waitKey(1) & 0xFF
-    if key == ord('y'):
+    if (category == "" or category == "not detected" or category == "none"):
+        last = cv.getTickCount()
+    if (category != "" and category != "not detected" and category != "none" and cv.getTickCount() - last >= 2000000000):
         letters.append(category)
-    if key == ord('q'):
+        print(letters)
+        last = cv.getTickCount()
+    if cv.waitKey(1) == ord('q'):
         break
 
-print(letters)
 # Load the last frame as a numpy array into mediapipe
 
 # The Gesture Recognizer uses the recognize (for images), recognize_for_video (for video)
