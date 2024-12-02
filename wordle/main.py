@@ -29,15 +29,14 @@ class Game:
         self.invalid_word = False
         self.timer = 0
         self.alphabet = [chr(i) for i in range(65, 91)]  # A-Z
-        self.letter_colors = {letter: WHITE for letter in self.alphabet}  # Inițial, toate literele sunt albe
-
+        self.letter_colors = {letter: WHITE for letter in self.alphabet}  # Initially, all letters are white
 
     def create_tiles(self):
-        # Calculează marginile pentru centrare
+        # Calculate margins for centering
         MARGIN_X = (self.screen.get_width() - (5 * TILESIZE + 4 * GAPSIZE)) // 2
         MARGIN_Y = (self.screen.get_height() - (6 * TILESIZE + 5 * GAPSIZE)) // 2
 
-        # Dacă matricea există deja, actualizează doar pozițiile
+        # If the matrix already exists, just update positions
         if hasattr(self, 'tiles') and self.tiles:
             for row in range(6):
                 for col in range(5):
@@ -45,7 +44,7 @@ class Game:
                     self.tiles[row][col].y = (row * (TILESIZE + GAPSIZE)) + MARGIN_Y
             return
 
-        # Creează matricea inițială
+        # Create the initial matrix
         self.tiles = []
         for row in range(6):
             self.tiles.append([])
@@ -53,8 +52,6 @@ class Game:
                 x = (col * (TILESIZE + GAPSIZE)) + MARGIN_X
                 y = (row * (TILESIZE + GAPSIZE)) + MARGIN_Y
                 self.tiles[row].append(Tile(x, y))
-
-
 
     def run(self):
         self.playing = True
@@ -68,11 +65,11 @@ class Game:
         self.add_letter()
 
     def add_letter(self):
-        # empty all the letter in the current row
+        # Empty all the letters in the current row
         for tile in self.tiles[self.current_row]:
             tile.letter = ""
 
-        # add the letters typed to the current row
+        # Add the letters typed to the current row
         for i, letter in enumerate(self.text):
             self.tiles[self.current_row][i].letter = letter
             self.tiles[self.current_row][i].create_font()
@@ -81,23 +78,23 @@ class Game:
         for row in self.tiles:
             for tile in row:
                 tile.draw(self.screen)
-                
+
     def draw_alphabet(self):
-        # Lățimea totală necesară pentru un singur rând
+        # Total width needed for a single row
         total_width = 26 * ALPHABET_TILE_SIZE + 25 * ALPHABET_GAPSIZE
         available_width = self.screen.get_width()
 
-        # Verifică dacă alfabetul încape pe un singur rând
+        # Check if the alphabet fits in a single row
         if total_width > available_width:
-            # Împarte alfabetul pe două rânduri
+            # Split alphabet into two rows
             letters_per_row = 13
             rows = 2
         else:
-            # Un singur rând
+            # Single row
             letters_per_row = 26
             rows = 1
 
-        # Poziționează literele în funcție de numărul de rânduri
+        # Position letters based on the number of rows
         for row in range(rows):
             margin_x = (available_width - (letters_per_row * ALPHABET_TILE_SIZE + (letters_per_row - 1) * ALPHABET_GAPSIZE)) // 2
             y = self.tiles[-1][0].y + TILESIZE + (row * (ALPHABET_TILE_SIZE + ALPHABET_GAPSIZE)) + 2 * ALPHABET_GAPSIZE
@@ -110,17 +107,15 @@ class Game:
                 letter = self.alphabet[index]
                 x = margin_x + i * (ALPHABET_TILE_SIZE + ALPHABET_GAPSIZE)
 
-                # Desenează fiecare literă
+                # Draw each letter
                 pygame.draw.rect(self.screen, self.letter_colors[letter], (x, y, ALPHABET_TILE_SIZE, ALPHABET_TILE_SIZE))
                 text_surface = pygame.font.Font(None, 36).render(letter, True, BLACK)
                 text_rect = text_surface.get_rect(center=(x + ALPHABET_TILE_SIZE // 2, y + ALPHABET_TILE_SIZE // 2))
                 self.screen.blit(text_surface, text_rect)
 
-
-
     def draw(self):
         self.screen.fill(BGCOLOUR)
-        # display the not enough letters text
+        # Display the "Not Enough Letters" or "Invalid Word" text
         if self.not_enough_letters or self.invalid_word:
             self.timer += 1
             if self.not_enough_letters:
@@ -140,14 +135,14 @@ class Game:
             self.letters_text.draw(self.screen)
         elif self.invalid_word:
             self.invalid_word_text.draw(self.screen)
-        
+
         self.draw_tiles()
         self.draw_alphabet()
 
         pygame.display.flip()
 
     def row_animation(self):
-        # row shaking if not enough letters is inputted
+        # Row shaking animation if not enough letters are input
         start_pos = self.tiles[0][0].x
         amount_move = 4
         move = 3
