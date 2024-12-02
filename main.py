@@ -68,9 +68,16 @@ while True:
       recognizer.recognize_async(mp_image, frame_timestamp_ms)
       radius = 2
       color = (239, 3, 7)
+      color2 = (100, 2, 5)
       thickness = 2
       for i in range(0, 21):
           cv.circle(frame, center[i], radius, color, thickness)
+          if (i < 4 or (i >= 5 and i < 8) or (i >= 9 and i < 12) or (i >= 13 and i < 16) or (i >= 17 and i < 20)):
+            cv.line(frame, center[i], center[i+1], color2, thickness)
+          if(i > 1 and i < 17 and i % 4 == 1):
+           cv.line(frame, center[i], center[i + 4], color2, thickness)
+      cv.line(frame, center[0], center[5], color2, thickness)
+      cv.line(frame, center[0], center[17], color2, thickness)
       out.write(frame)
 
       # Display the captured frame
