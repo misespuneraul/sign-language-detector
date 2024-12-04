@@ -35,5 +35,3 @@ loss, acc = model.evaluate(test_data, batch_size=1)
 print(f"Test loss:{loss}, Test accuracy:{acc}")
 
 model.export_model()
-
-

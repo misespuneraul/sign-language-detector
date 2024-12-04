@@ -3,6 +3,87 @@ import pygame
 from settings import *
 from sprites import *
 
+
+class MainMenu:
+    def __init__(self, screen):
+        self.screen = screen
+        self.clock = pygame.time.Clock()
+        self.options = ["Play Wordle", "Write Something", "Quit"]
+        self.font = pygame.font.Font(None, 50)
+
+    def draw(self, selected_option):
+        self.screen.fill(BGCOLOUR)
+        title_text = self.font.render("Main Menu", True, WHITE)
+        title_rect = title_text.get_rect(center=(WIDTH // 2, 100))
+        self.screen.blit(title_text, title_rect)
+
+        for i, option in enumerate(self.options):
+            color = GREEN if i == selected_option else WHITE
+            option_text = self.font.render(option, True, color)
+            option_rect = option_text.get_rect(center=(WIDTH // 2, 200 + i * 100))
+            self.screen.blit(option_text, option_rect)
+
+        pygame.display.flip()
+
+    def run(self):
+        selected_option = 0
+        while True:
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    pygame.quit()
+                    quit()
+
+                if event.type == pygame.KEYDOWN:
+                    if event.key == pygame.K_UP:
+                        selected_option = (selected_option - 1) % len(self.options)
+                    elif event.key == pygame.K_DOWN:
+                        selected_option = (selected_option + 1) % len(self.options)
+                    elif event.key == pygame.K_RETURN:
+                        return selected_option
+
+            self.draw(selected_option)
+            self.clock.tick(FPS)
+
+def write_something(screen):
+    input_text = ""
+    font = pygame.font.Font(None, 50)
+    clock = pygame.time.Clock()
+    writing = True
+
+    while writing:
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                quit()
+
+            if event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_RETURN:
+                    writing = False
+                elif event.key == pygame.K_BACKSPACE:
+                    input_text = input_text[:-1]
+                else:
+                    input_text += event.unicode
+
+        screen.fill(BGCOLOUR)
+        prompt_text = font.render("Write something and press Enter:", True, WHITE)
+        prompt_rect = prompt_text.get_rect(center=(WIDTH // 2, HEIGHT // 3))
+        screen.blit(prompt_text, prompt_rect)
+
+        input_surface = font.render(input_text, True, GREEN)
+        input_rect = input_surface.get_rect(center=(WIDTH // 2, HEIGHT // 2))
+        screen.blit(input_surface, input_rect)
+
+        pygame.display.flip()
+        clock.tick(FPS)
+
+    screen.fill(BGCOLOUR)
+    result_text = font.render(f"You wrote: {input_text}", True, WHITE)
+    result_rect = result_text.get_rect(center=(WIDTH // 2, HEIGHT // 2))
+    screen.blit(result_text, result_rect)
+    pygame.display.flip()
+    pygame.time.wait(2000)
+
+
 class Game:
     def __init__(self):
         pygame.init()
@@ -340,6 +421,16 @@ class Game:
 
 
 game = Game()
+
 while True:
-    game.new()
-    game.run()
+    menu = MainMenu(game.screen)
+    choice = menu.run()
+
+    if choice == 0:
+        game.new()
+        game.run()
+    elif choice == 1:
+        write_something(game.screen)
+    elif choice == 2:
+        pygame.quit()
+        quit()
