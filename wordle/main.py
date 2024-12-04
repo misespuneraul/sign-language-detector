@@ -30,6 +30,7 @@ class Game:
         self.timer = 0
         self.alphabet = [chr(i) for i in range(65, 91)]  # A-Z
         self.letter_colors = {letter: WHITE for letter in self.alphabet}  # Initially, all letters are white
+        self.alph_letter_colors = {letter: WHITE for letter in self.alphabet}
 
     def create_tiles(self):
         # Calculate margins for centering
@@ -108,7 +109,7 @@ class Game:
                 x = margin_x + i * (ALPHABET_TILE_SIZE + ALPHABET_GAPSIZE)
 
                 # Draw each letter
-                pygame.draw.rect(self.screen, self.letter_colors[letter], (x, y, ALPHABET_TILE_SIZE, ALPHABET_TILE_SIZE))
+                pygame.draw.rect(self.screen, self.alph_letter_colors[letter], (x, y, ALPHABET_TILE_SIZE, ALPHABET_TILE_SIZE))
                 text_surface = pygame.font.Font(None, 36).render(letter, True, BLACK)
                 text_rect = text_surface.get_rect(center=(x + ALPHABET_TILE_SIZE // 2, y + ALPHABET_TILE_SIZE // 2))
                 self.screen.blit(text_surface, text_rect)
@@ -228,16 +229,23 @@ class Game:
 
     def check_letters(self):
         # Algoritm pentru verificarea literelor
+        
         copy_word = [x for x in self.word]
+        print(copy_word)
+        print(self.text)
         for i, user_letter in enumerate(self.text):
             colour = LIGHTGREY
             for j, letter in enumerate(copy_word):
+                print(user_letter,letter)
                 if user_letter == letter:
                     colour = YELLOW
                     if i == j:
+                        print("DA!")
                         colour = GREEN
-                    copy_word[j] = ""
-                    break
+                        copy_word[j] = ""
+                        break    
+                    
+                    
 
             # Schimbă culoarea alfabetului pentru literele găsite
             self.letter_colors[user_letter] = colour
@@ -249,6 +257,7 @@ class Game:
         for letter in self.text:
             if letter not in self.word:
                 self.letter_colors[letter] = RED
+                self.alph_letter_colors[letter] = RED
 
 
     def events(self):
