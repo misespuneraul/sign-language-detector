@@ -12,17 +12,12 @@ BaseOptions = mp.tasks.BaseOptions
 # https://ai.google.dev/edge/mediapipe/solutions/vision/gesture_recognizer/python#configuration_options list of options
 GestureRecognizer = mp.tasks.vision.GestureRecognizer
 GestureRecognizerOptions = mp.tasks.vision.GestureRecognizerOptions
+GestureRecognizerResult = mp.tasks.vision.GestureRecognizerResult
 VisionRunningMode = mp.tasks.vision.RunningMode
 
 model_path = 'gesture_recognizer.task'# change path as needed (input? detection?)
 with open('wordle/words.txt', 'r') as file:
     possibilities = [line.strip() for line in file.readlines()]
-
-BaseOptions = mp.tasks.BaseOptions
-GestureRecognizer = mp.tasks.vision.GestureRecognizer
-GestureRecognizerOptions = mp.tasks.vision.GestureRecognizerOptions
-GestureRecognizerResult = mp.tasks.vision.GestureRecognizerResult
-VisionRunningMode = mp.tasks.vision.RunningMode
 
 center = [(0, 0) for _ in range(21)]
 score = 0
@@ -43,15 +38,12 @@ def print_result(result: GestureRecognizerResult, output_image: mp.Image, timest
     for gesture in result.gestures:
         score = gesture[0].score
         category = gesture[0].category_name
+
 options = GestureRecognizerOptions(
     base_options=BaseOptions(model_asset_path=model_path),
     running_mode=VisionRunningMode.LIVE_STREAM,
     result_callback=print_result)
 recognizer = GestureRecognizer.create_from_options(options)
-
-# Use OpenCV’s VideoCapture to start capturing from the webcam.
-# Create a loop to read the latest frame from the camera using VideoCapture#read()
-# Convert the frame received from OpenCV to a MediaPipe’s Image object.
 
 cam = cv.VideoCapture(0, cv.CAP_DSHOW)
 start_time = cv.getTickCount()
@@ -61,9 +53,6 @@ last = start_time
 frame_width = int(cam.get(cv.CAP_PROP_FRAME_WIDTH))
 frame_height = int(cam.get(cv.CAP_PROP_FRAME_HEIGHT))
 
-# Define the codec and create VideoWriter object
-fourcc = cv.VideoWriter_fourcc(*'mp4v')
-out = cv.VideoWriter('output.mp4', fourcc, 20.0, (frame_width, frame_height))
 letters = ""
 while True:
     ret, frame = cam.read()
@@ -71,7 +60,6 @@ while True:
     # Write the frame to the output file
     if (ret):
       mp_image = mp.Image(image_format=mp.ImageFormat.SRGB, data=frame)
-      # frame_timestamp_ms = int(time.perf_counter() * 20)
       frame_timestamp_ms = int((cv.getTickCount() - start_time) * 1000 / cv.getTickFrequency())
       recognizer.recognize_async(mp_image, frame_timestamp_ms)
       radius = 2
@@ -108,12 +96,10 @@ while True:
       text = str(procentaj)
       cv.putText(frame, text, position2, font2, font_scale2, font_color2, thickness, line_type)
       cv.putText(frame, string, position3, font2, font_scale2, font_color2, thickness, line_type)
-      out.write(frame)
 
       # Display the captured frame
       cv.imshow('Camera', frame)
 
-    # Press 'q' to exit the loop
     if (category == "" or category == "not detected" or category == "none"):
         last = cv.getTickCount()
         score = 0
@@ -121,35 +107,17 @@ while True:
         letters += category
         print(letters)
         last = cv.getTickCount()
+    
+    # Press 'q' to exit the loop
     if cv.waitKey(1) == ord('q'):
         break
 
 letters = letters.lower()
-result = difflib.get_close_matches(letters, possibilities)
-print(result)
-# Load the last frame as a numpy array into mediapipe
+if letters not in possibilities:
+    result = difflib.get_close_matches(letters, possibilities)
+    print(result)
 
-# The Gesture Recognizer uses the recognize (for images), recognize_for_video (for video)
-# and recognize_async (for live) functions to trigger inferences. For gesture recognition,
-# this involves preprocessing input data, detecting hands in the image, detecting hand
-# landmarks, and recognizing hand gesture from the landmarks.
-
-# Send live image data to perform gesture recognition.
-# The results are accessible via the `result_callback` provided in
-# the `GestureRecognizerOptions` object.
-# The gesture recognizer must be created with the live stream mode.
-# recognizer.recognize_async(mp_image, frame_timestamp_ms)
-# When running in the video mode or the live stream mode, you must
-# also provide the Gesture Recognizer task the timestamp of the input frame.
-# When running in the live stream mode, the Gesture Recognizer task doesn’t
-# block the current thread but returns immediately. It will invoke its result
-# listener with the recognition result every time it has finished processing an
-# input frame. If the recognition function is called when the Gesture Recognizer
-# task is busy processing another frame, the task will ignore the new input frame.
-
-# Release the capture and writer objects
 cam.release()
-out.release()
 cv.destroyAllWindows()
 
 # TODO List:

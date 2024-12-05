@@ -2,6 +2,8 @@ import random
 import pygame
 from settings import *
 from sprites import *
+import datetime
+import requests
 
 
 class MainMenu:
@@ -91,6 +93,7 @@ class Game:
         pygame.display.set_caption(title)
         self.clock = pygame.time.Clock()
         self.create_word_list()
+        self.use_api_word = True  # Flag to fetch the first word from API
         self.letters_text = UIElement((self.screen.get_width() - (5 * TILESIZE + 4 * GAPSIZE)) // 2, 70, "Not Enough Letters", WHITE)
         self.invalid_word_text = UIElement((self.screen.get_width() - (5 * TILESIZE + 4 * GAPSIZE)) // 2, 70, "Invalid Word", WHITE)
 
@@ -99,8 +102,19 @@ class Game:
             self.words_list = file.read().splitlines()
 
     def new(self):
-        self.word = random.choice(self.words_list).upper()
-        print(self.word)
+        if self.use_api_word:
+            # Fetch the word from the API
+            date = datetime.date.today()
+            url = f"https://www.nytimes.com/svc/wordle/v2/{date:%Y-%m-%d}.json"
+            response = requests.get(url).json()
+            print(f"Answer (from API): {response['solution']}")
+            self.word = response['solution'].upper()
+            self.use_api_word = False  # Switch to using word list for subsequent games
+        else:
+            # Select a word randomly from the list
+            self.word = random.choice(self.words_list).upper()
+            print(f"Answer (from list): {self.word}")
+
         self.text = ""
         self.current_row = 0
         self.tiles = []
@@ -112,6 +126,7 @@ class Game:
         self.alphabet = [chr(i) for i in range(65, 91)]  # A-Z
         self.letter_colors = {letter: WHITE for letter in self.alphabet}  # Initially, all letters are white
         self.alph_letter_colors = {letter: WHITE for letter in self.alphabet}
+
 
     def create_tiles(self):
         # Calculate margins for centering
@@ -363,24 +378,25 @@ class Game:
                             for letter in self.alphabet:
                                 if letter not in self.word and letter in self.text and self.letter_colors[letter] == WHITE:
                                     self.letter_colors[letter] = RED
+                            
+                                                    # if the text is correct or the player has used all his turns
+                            if self.text == self.word or self.current_row + 1 == 6:
+                                # player lose, lose message is sent
+                                if self.text != self.word:
+                                    self.end_screen_text = UIElement((self.screen.get_width() - (5 * TILESIZE + 4 * GAPSIZE)) // 2, self.screen.get_height() - 200 , f"THE WORD WAS: {self.word}", WHITE)
+
+                                # player win, send win message
+                                else:
+                                    self.end_screen_text = UIElement((self.screen.get_width() - (5 * TILESIZE + 4 * GAPSIZE)) // 2, self.screen.get_height() - 200, "YOU GUESSED RIGHT", WHITE)
+
+                                # restart the game
+                                self.playing = False
+                                self.end_screen()
+                                break
                         else :
                             self.invalid_word = True
                             self.row_animation()
-                        
-                        # if the text is correct or the player has used all his turns
-                        if self.text == self.word or self.current_row + 1 == 6:
-                            # player lose, lose message is sent
-                            if self.text != self.word:
-                                self.end_screen_text = UIElement((self.screen.get_width() - (5 * TILESIZE + 4 * GAPSIZE)) // 2, self.screen.get_height() - 200 , f"THE WORD WAS: {self.word}", WHITE)
 
-                            # player win, send win message
-                            else:
-                                self.end_screen_text = UIElement((self.screen.get_width() - (5 * TILESIZE + 4 * GAPSIZE)) // 2, self.screen.get_height() - 200, "YOU GUESSED RIGHT", WHITE)
-
-                            # restart the game
-                            self.playing = False
-                            self.end_screen()
-                            break
                         
                         if self.invalid_word == False:
                             self.current_row += 1
