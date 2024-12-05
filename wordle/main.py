@@ -4,7 +4,12 @@ from settings import *
 from sprites import *
 import datetime
 import requests
+import sys
+import os
 
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', 'sign-language-detector')))
+
+from detector import *
 
 class MainMenu:
     def __init__(self, screen):
@@ -84,7 +89,6 @@ def write_something(screen):
     screen.blit(result_text, result_rect)
     pygame.display.flip()
     pygame.time.wait(2000)
-
 
 class Game:
     def __init__(self):
@@ -437,6 +441,8 @@ class Game:
 
 
 game = Game()
+
+setup_detector()
 
 while True:
     menu = MainMenu(game.screen)
