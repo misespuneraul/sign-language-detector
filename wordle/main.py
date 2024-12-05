@@ -9,7 +9,8 @@ import os
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', 'sign-language-detector')))
 
-from detector import *
+# from detector import *
+# from model import *
 
 class MainMenu:
     def __init__(self, screen):
@@ -442,7 +443,7 @@ class Game:
 
 game = Game()
 
-setup_detector()
+# setup_detector()
 
 while True:
     menu = MainMenu(game.screen)
