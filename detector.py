@@ -1,7 +1,7 @@
 import mediapipe as mp
 import cv2 as cv
 from mediapipe.tasks import python
-import difflib
+# import difflib
 
 class GestureRecognizer:
     def __init__(self, model_path='gesture_recognizer.task', words_file='wordle/words.txt'):
@@ -120,13 +120,13 @@ class GestureRecognizer:
             if cv.waitKey(1) == ord('q'):
                 break
 
-        self.evaluate_gesture()
+        # self.evaluate_gesture()
 
-    def evaluate_gesture(self):
-        self.letters = self.letters.lower()
-        if self.letters not in self.possibilities:
-            result = difflib.get_close_matches(self.letters, self.possibilities)
-            print(result)
+    # def evaluate_gesture(self):
+    #     self.letters = self.letters.lower()
+    #     if self.letters not in self.possibilities:
+    #         result = difflib.get_close_matches(self.letters, self.possibilities)
+    #         print(result)
 
     def cleanup(self):
         self.cam.release()
