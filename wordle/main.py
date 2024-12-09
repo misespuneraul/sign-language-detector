@@ -7,10 +7,60 @@ import requests
 import sys
 import os
 
+import mediapipe as mp
+import cv2 as cv
+from mediapipe.tasks import python
+import difflib
+
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', 'sign-language-detector')))
 
-# from detector import *
-# from model import *
+BaseOptions = mp.tasks.BaseOptions
+# https://ai.google.dev/edge/mediapipe/solutions/vision/gesture_recognizer/python#configuration_options list of options
+GestureRecognizer = mp.tasks.vision.GestureRecognizer
+GestureRecognizerOptions = mp.tasks.vision.GestureRecognizerOptions
+GestureRecognizerResult = mp.tasks.vision.GestureRecognizerResult
+VisionRunningMode = mp.tasks.vision.RunningMode
+
+model_path = 'gesture_recognizer.task'# change path as needed (input? detection?)
+with open('words.txt', 'r') as file:
+    possibilities = [line.strip() for line in file.readlines()]
+
+center = [(0, 0) for _ in range(21)]
+score = 0
+category = "not detected"
+
+# Create a gesture recognizer instance with the live stream mode:
+def print_result(result: GestureRecognizerResult, output_image: mp.Image, timestamp_ms: int):
+    global center
+    global score
+    global category
+    if (result.hand_landmarks.__sizeof__() == 40):
+        center = [(0, 0) for _ in range(21)]
+        score = 0
+        category = "not detected"
+    for landmark in result.hand_landmarks:
+        for i in range(0, 21):
+            center[i] = (int(frame_width * landmark[i].x), int(frame_height * landmark[i].y))
+    for gesture in result.gestures:
+        score = gesture[0].score
+        category = gesture[0].category_name
+
+options = GestureRecognizerOptions(
+    base_options=BaseOptions(model_asset_path=model_path),
+    running_mode=VisionRunningMode.LIVE_STREAM,
+    result_callback=print_result)
+recognizer = GestureRecognizer.create_from_options(options)
+
+cam = cv.VideoCapture(0, cv.CAP_DSHOW)
+start_time = cv.getTickCount()
+last = start_time
+
+# Get the default frame width and height
+frame_width = int(cam.get(cv.CAP_PROP_FRAME_WIDTH))
+frame_height = int(cam.get(cv.CAP_PROP_FRAME_HEIGHT))
+
+letters = ""
+
 
 class MainMenu:
     def __init__(self, screen):
@@ -101,6 +151,19 @@ class Game:
         self.use_api_word = True  # Flag to fetch the first word from API
         self.letters_text = UIElement((self.screen.get_width() - (5 * TILESIZE + 4 * GAPSIZE)) // 2, 70, "Not Enough Letters", WHITE)
         self.invalid_word_text = UIElement((self.screen.get_width() - (5 * TILESIZE + 4 * GAPSIZE)) // 2, 70, "Invalid Word", WHITE)
+        self.recommendations = []  # List to store recommended words
+
+        # In Game.draw
+    def draw_suggestions(self):
+        if self.recommendations:
+            # Position suggestions dynamically to the right of the grid
+            margin_x = self.tiles[0][-1].x + TILESIZE + 2 * GAPSIZE  # Right of the grid
+            margin_y = self.tiles[0][0].y  # Aligned with the top of the grid
+
+            for i, word in enumerate(self.recommendations):
+                y = margin_y + i * 40  # Space between lines
+                text_surface = pygame.font.Font(None, 36).render(word.upper(), True, WHITE)
+                self.screen.blit(text_surface, (margin_x, y))
 
     def create_word_list(self):
         with open("words.txt", "r") as file:
@@ -239,6 +302,7 @@ class Game:
             self.invalid_word_text.draw(self.screen)
 
         self.draw_tiles()
+        self.draw_suggestions()
         self.draw_alphabet()
 
         pygame.display.flip()
@@ -366,49 +430,49 @@ class Game:
             if event.type == pygame.QUIT:
                 pygame.quit()
                 quit(0)
-            if event.type == pygame.VIDEORESIZE:  # Eveniment de redimensionare
-                WIDTH, HEIGHT = event.w, event.h  # Actualizează dimensiunea ferestrei
+            if event.type == pygame.VIDEORESIZE:
+                WIDTH, HEIGHT = event.w, event.h
                 self.screen = pygame.display.set_mode((WIDTH, HEIGHT), pygame.RESIZABLE)
-                self.create_tiles()  # Recalculează pozițiile matricei
-
-            
+                self.create_tiles()
 
             if event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_RETURN:
                     if len(self.text) == 5:
                         # check all letters
-                        if self.text.lower() in self.words_list :
+                        if self.text.lower() in self.words_list:
+                            self.recommendations = []  # Clear suggestions when valid word is entered
                             self.check_letters()
-                            # Evidențiază literele nefolositoare
+
                             for letter in self.alphabet:
                                 if letter not in self.word and letter in self.text and self.letter_colors[letter] == WHITE:
                                     self.letter_colors[letter] = RED
-                            
-                                                    # if the text is correct or the player has used all his turns
+
                             if self.text == self.word or self.current_row + 1 == 6:
-                                # player lose, lose message is sent
                                 if self.text != self.word:
-                                    self.end_screen_text = UIElement((self.screen.get_width() - (5 * TILESIZE + 4 * GAPSIZE)) // 2, self.screen.get_height() - 200 , f"THE WORD WAS: {self.word}", WHITE)
-
-                                # player win, send win message
+                                    self.end_screen_text = UIElement(
+                                        (self.screen.get_width() - (5 * TILESIZE + 4 * GAPSIZE)) // 2,
+                                        self.screen.get_height() - 200, f"THE WORD WAS: {self.word}", WHITE)
                                 else:
-                                    self.end_screen_text = UIElement((self.screen.get_width() - (5 * TILESIZE + 4 * GAPSIZE)) // 2, self.screen.get_height() - 200, "YOU GUESSED RIGHT", WHITE)
+                                    self.end_screen_text = UIElement(
+                                        (self.screen.get_width() - (5 * TILESIZE + 4 * GAPSIZE)) // 2,
+                                        self.screen.get_height() - 200, "YOU GUESSED RIGHT", WHITE)
 
-                                # restart the game
                                 self.playing = False
                                 self.end_screen()
                                 break
-                        else :
+                        else:
                             self.invalid_word = True
+                            if self.text.lower() not in possibilities:
+                                self.recommendations = difflib.get_close_matches(self.text.lower(), possibilities)
+                                print(self.recommendations)
                             self.row_animation()
 
-                        
-                        if self.invalid_word == False:
+                        if not self.invalid_word:  # Clear the word text and recommendations
                             self.current_row += 1
                             self.text = ""
+                            self.recommendations = []  # Clear recommendations after valid submission
 
                     else:
-                        # row animation, not enough letters message
                         self.not_enough_letters = True
                         self.row_animation()
 
@@ -419,6 +483,7 @@ class Game:
                     if len(self.text) < 5 and event.unicode.isalpha():
                         self.text += event.unicode.upper()
                         self.box_animation()
+
 
     def end_screen(self):
         play_again = UIElement((self.screen.get_width() - (5 * TILESIZE + 4 * GAPSIZE)) // 2, self.screen.get_height() - 150, "PRESS ENTER TO PLAY AGAIN", WHITE, 30)
@@ -440,15 +505,11 @@ class Game:
             play_again.draw(self.screen)
             pygame.display.flip()
 
-
 game = Game()
-
-# setup_detector()
+menu = MainMenu(game.screen)
 
 while True:
-    menu = MainMenu(game.screen)
     choice = menu.run()
-
     if choice == 0:
         game.new()
         game.run()
