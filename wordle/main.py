@@ -233,8 +233,9 @@ class Game:
             self.recognizer.last = cv.getTickCount()
             self.recognizer.score = 0
         if self.recognizer.category != "" and self.recognizer.category != "not detected" and self.recognizer.category != "none" and cv.getTickCount() - self.recognizer.last >= 2000000000:
-            self.recognizer.letters += self.recognizer.category
-            print(self.recognizer.letters)
+            # self.recognizer.letters += self.recognizer.category
+            # print(self.recognizer.letters)
+            self.text += self.recognizer.category
             self.recognizer.last = cv.getTickCount()
 
         # # Press 'q' to exit the loop
