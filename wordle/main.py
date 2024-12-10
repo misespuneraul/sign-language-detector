@@ -1,5 +1,9 @@
 import random
+
+import keyboard
 import pygame
+from unicodedata import category
+
 from settings import *
 from sprites import *
 import datetime
@@ -21,6 +25,9 @@ from detector import GestureRecognizer
 # sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', 'sign-language-detector')))
 
 # letter_queue = queue.Queue(maxsize=5)
+
+
+nrlitere = 0
 
 class MainMenu:
     def __init__(self, screen):
@@ -222,7 +229,6 @@ class Game:
         self.load_camera()
         self.add_letter()
         # update every X secunde (5 daca s-a aratat acelasi semn)
-        
         self.frame = self.recognizer.process_frame(self.frame)
         cv.imshow("Camera", self.frame)
         cv.waitKey(1)
@@ -233,6 +239,14 @@ class Game:
         if self.recognizer.category != "" and self.recognizer.category != "not detected" and self.recognizer.category != "none" and cv.getTickCount() - self.recognizer.last >= 2000000000:
             # self.recognizer.letters += self.recognizer.category
             # print(self.recognizer.letters)
+            global nrlitere
+            nrlitere += 1
+            if (nrlitere == 5):
+                keyboard.press('enter')
+                keyboard.release('enter')
+                nrlitere = 0
+            print(self.recognizer.category)
+            print(nrlitere)
             self.text += self.recognizer.category
             self.recognizer.last = cv.getTickCount()
 

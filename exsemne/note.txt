@@ -1,0 +1,2 @@
+- acest set contine doar cateva exemple din fiecare categorie
+- setul pe care a fost antrenat modelul contine 45k+ poze
