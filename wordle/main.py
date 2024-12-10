@@ -72,6 +72,8 @@ def write_something(screen):
     while writing:
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
+                recognizer.cam.release()
+                cv.destroyAllWindows()
                 pygame.quit()
                 quit()
 
@@ -83,22 +85,18 @@ def write_something(screen):
                 # else:
                 #     input_text += event.unicode
                 
-            ret, frame = recognizer.cam.read()
+        ret, frame = recognizer.cam.read()
+        
+        frame = recognizer.process_frame(frame)
+        cv.imshow("Camera", frame)
+        cv.waitKey(1)
 
-            # if ret:
-            #     frame = recognizer.process_frame(frame)
-            #     cv.imshow('Camera', frame)
-
-            # if recognizer.category == "" or recognizer.category == "not detected" or recognizer.category == "none":
-            #     recognizer.last = cv.getTickCount()
-            # if recognizer.category != "" and recognizer.category != "not detected" and recognizer.category != "none" and cv.getTickCount() - recognizer.last >= 2000000000:
-            #     input_text += recognizer.category
-            #     # print(self.letters)
-            #     recognizer.last = cv.getTickCount()
-
-            # # # Press 'q' to exit the loop
-            # # if cv.waitKey(1) == ord('q'):
-            # #     break
+        if recognizer.category == "" or recognizer.category == "not detected" or recognizer.category == "none":
+            recognizer.last = cv.getTickCount()
+            recognizer.score = 0
+        if recognizer.category != "" and recognizer.category != "not detected" and recognizer.category != "none" and cv.getTickCount() - recognizer.last >= 2000000000:
+            input_text += recognizer.category
+            recognizer.last = cv.getTickCount()
 
         screen.fill(BGCOLOUR)
         prompt_text = font.render("Write something and press Enter:", True, WHITE)
