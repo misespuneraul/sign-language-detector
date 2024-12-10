@@ -12,55 +12,15 @@ import cv2 as cv
 from mediapipe.tasks import python
 import difflib
 
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', 'sign-language-detector')))
+import threading
+import time
+import queue
 
-BaseOptions = mp.tasks.BaseOptions
-# https://ai.google.dev/edge/mediapipe/solutions/vision/gesture_recognizer/python#configuration_options list of options
-GestureRecognizer = mp.tasks.vision.GestureRecognizer
-GestureRecognizerOptions = mp.tasks.vision.GestureRecognizerOptions
-GestureRecognizerResult = mp.tasks.vision.GestureRecognizerResult
-VisionRunningMode = mp.tasks.vision.RunningMode
+from detector import GestureRecognizer
 
-model_path = 'gesture_recognizer.task'# change path as needed (input? detection?)
-with open('words.txt', 'r') as file:
-    possibilities = [line.strip() for line in file.readlines()]
+# sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', 'sign-language-detector')))
 
-center = [(0, 0) for _ in range(21)]
-score = 0
-category = "not detected"
-
-# Create a gesture recognizer instance with the live stream mode:
-def print_result(result: GestureRecognizerResult, output_image: mp.Image, timestamp_ms: int):
-    global center
-    global score
-    global category
-    if (result.hand_landmarks.__sizeof__() == 40):
-        center = [(0, 0) for _ in range(21)]
-        score = 0
-        category = "not detected"
-    for landmark in result.hand_landmarks:
-        for i in range(0, 21):
-            center[i] = (int(frame_width * landmark[i].x), int(frame_height * landmark[i].y))
-    for gesture in result.gestures:
-        score = gesture[0].score
-        category = gesture[0].category_name
-
-options = GestureRecognizerOptions(
-    base_options=BaseOptions(model_asset_path=model_path),
-    running_mode=VisionRunningMode.LIVE_STREAM,
-    result_callback=print_result)
-recognizer = GestureRecognizer.create_from_options(options)
-
-cam = cv.VideoCapture(0, cv.CAP_DSHOW)
-start_time = cv.getTickCount()
-last = start_time
-
-# Get the default frame width and height
-frame_width = int(cam.get(cv.CAP_PROP_FRAME_WIDTH))
-frame_height = int(cam.get(cv.CAP_PROP_FRAME_HEIGHT))
-
-letters = ""
-
+# letter_queue = queue.Queue(maxsize=5)
 
 class MainMenu:
     def __init__(self, screen):
@@ -107,6 +67,7 @@ def write_something(screen):
     font = pygame.font.Font(None, 50)
     clock = pygame.time.Clock()
     writing = True
+    recognizer = GestureRecognizer()
 
     while writing:
         for event in pygame.event.get():
@@ -119,8 +80,25 @@ def write_something(screen):
                     writing = False
                 elif event.key == pygame.K_BACKSPACE:
                     input_text = input_text[:-1]
-                else:
-                    input_text += event.unicode
+                # else:
+                #     input_text += event.unicode
+                
+            ret, frame = recognizer.cam.read()
+
+            # if ret:
+            #     frame = recognizer.process_frame(frame)
+            #     cv.imshow('Camera', frame)
+
+            # if recognizer.category == "" or recognizer.category == "not detected" or recognizer.category == "none":
+            #     recognizer.last = cv.getTickCount()
+            # if recognizer.category != "" and recognizer.category != "not detected" and recognizer.category != "none" and cv.getTickCount() - recognizer.last >= 2000000000:
+            #     input_text += recognizer.category
+            #     # print(self.letters)
+            #     recognizer.last = cv.getTickCount()
+
+            # # # Press 'q' to exit the loop
+            # # if cv.waitKey(1) == ord('q'):
+            # #     break
 
         screen.fill(BGCOLOUR)
         prompt_text = font.render("Write something and press Enter:", True, WHITE)
@@ -152,6 +130,19 @@ class Game:
         self.letters_text = UIElement((self.screen.get_width() - (5 * TILESIZE + 4 * GAPSIZE)) // 2, 70, "Not Enough Letters", WHITE)
         self.invalid_word_text = UIElement((self.screen.get_width() - (5 * TILESIZE + 4 * GAPSIZE)) // 2, 70, "Invalid Word", WHITE)
         self.recommendations = []  # List to store recommended words
+
+        self.letter_timer = 0
+        self.letter = ""
+        self.cap = cv.VideoCapture(0)
+        self.recognizer = GestureRecognizer()
+    
+    def load_camera(self):
+        _, self.frame = self.cap.read()
+
+    def get_letter(self):
+        self.frame = self.recognizer.process_frame(self.frame)
+        self.letter = self.recognizer.letters[0]
+        self.recognizer.letters = self.recognizer.letters[1:]
 
         # In Game.draw
     def draw_suggestions(self):
@@ -194,6 +185,9 @@ class Game:
         self.alphabet = [chr(i) for i in range(65, 91)]  # A-Z
         self.letter_colors = {letter: WHITE for letter in self.alphabet}  # Initially, all letters are white
         self.alph_letter_colors = {letter: WHITE for letter in self.alphabet}
+        
+        self.cap = cv.VideoCapture(0)
+        self.recognizer = GestureRecognizer()
 
 
     def create_tiles(self):
@@ -227,7 +221,26 @@ class Game:
             self.draw()
 
     def update(self):
+        self.load_camera()
         self.add_letter()
+        # update every X secunde (5 daca s-a aratat acelasi semn)
+        
+        self.frame = self.recognizer.process_frame(self.frame)
+        cv.imshow("Camera", self.frame)
+        cv.waitKey(1)
+
+        if self.recognizer.category == "" or self.recognizer.category == "not detected" or self.recognizer.category == "none":
+            self.recognizer.last = cv.getTickCount()
+            self.recognizer.score = 0
+        if self.recognizer.category != "" and self.recognizer.category != "not detected" and self.recognizer.category != "none" and cv.getTickCount() - self.recognizer.last >= 2000000000:
+            self.recognizer.letters += self.recognizer.category
+            print(self.recognizer.letters)
+            self.recognizer.last = cv.getTickCount()
+
+        # # Press 'q' to exit the loop
+        # if cv.waitKey(1) == ord('q'):
+        #     break
+
 
     def add_letter(self):
         # Empty all the letters in the current row
@@ -483,6 +496,10 @@ class Game:
                     if len(self.text) < 5 and event.unicode.isalpha():
                         self.text += event.unicode.upper()
                         self.box_animation()
+                    # if len(self.text) < 5:
+                    #     self.text += self.letter.upper()
+                    #     self.letter = ""
+                    #     self.box_animation()
 
 
     def end_screen(self):
@@ -505,16 +522,38 @@ class Game:
             play_again.draw(self.screen)
             pygame.display.flip()
 
+def game_loop():
+    while True:
+        choice = menu.run()
+        if choice == 0:
+            game.new()
+            game.run()
+        elif choice == 1:
+            write_something(game.screen)
+        elif choice == 2:
+            pygame.quit()
+            quit()
+
+
+with open('words.txt', 'r') as file:
+    possibilities = [line.strip() for line in file.readlines()]
 game = Game()
 menu = MainMenu(game.screen)
+detector = GestureRecognizer()
 
-while True:
-    choice = menu.run()
-    if choice == 0:
-        game.new()
-        game.run()
-    elif choice == 1:
-        write_something(game.screen)
-    elif choice == 2:
-        pygame.quit()
-        quit()
+game_loop()
+detector.recognize_gesture()
+
+
+detector.cleanup()
+# cam_thread = threading.Thread(target=cam_loop)
+# game_thread = threading.Thread(target=game_loop)
+
+# cam_thread.start()
+# game_thread.start()
+
+# cam_thread.join()
+# game_thread.join()
+
+# cam.release()
+# cv.destroyAllWindows()
