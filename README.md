@@ -45,7 +45,7 @@ This project is an advanced Wordle game implementation, combining gesture recogn
 During gameplay, you don't need to hit the Enter or Backspace keys manually. Enter will be automatically triggered 20 seconds after typing the last letter if Backspace hasn't been pressed. Similarly, Backspace will automatically activate a few seconds after entering an invalid word. 
 
 ### **Simple Writing Mode**  
-For demonstration purposes, there's also a simple writing mode.
+For demonstration purposes, there's also a simple writing mode. The writing mode uses a different model that implements space to allow for easier input of text.
 
 Enjoy the animations and visual feedback as you play!
 
@@ -101,3 +101,4 @@ This project is inspired by the popular Wordle game and integrates modern techno
 
 While the NYT API fetches a unique solution daily, it is outdated and does not correspond to the actual solution on the current New York Times website.
 While we've implemented space in the writing mode, please note that other punctuation marks have not yet been included in the system.
+The writing mode model is less accurate than the game's gesture recognition model and might have a higher error rate in detecting letters.
