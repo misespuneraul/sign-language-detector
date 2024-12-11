@@ -102,3 +102,6 @@ This project is inspired by the popular Wordle game and integrates modern techno
 While the NYT API fetches a unique solution daily, it is outdated and does not correspond to the actual solution on the current New York Times website.
 While we've implemented space in the writing mode, please note that other punctuation marks have not yet been included in the system.
 The writing mode model is less accurate than the game's gesture recognition model and might have a higher error rate in detecting letters.
+
+##Github link
+https://github.com/misespuneraul/sign-language-detector
