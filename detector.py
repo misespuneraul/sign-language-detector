@@ -4,7 +4,7 @@ from mediapipe.tasks import python
 # import difflib
 
 class GestureRecognizer:
-    def __init__(self, model_path='gesture_recognizer.task', words_file='wordle/words.txt'):
+    def __init__(self, model_path='gesture_recognizer_game.task', words_file='wordle/words.txt'):
         self.model_path = model_path
         self.possibilities = self.load_word_list(words_file)
         self.center = [(0, 0) for _ in range(21)]
