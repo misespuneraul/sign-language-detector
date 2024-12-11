@@ -85,7 +85,7 @@ class GestureRecognizer:
         font_scale = 0.8
         font_color = (0, 0, 0)
         line_type = cv.LINE_AA
-        if (self.category == "none"):
+        if (self.category == "zz"):
             self.category = "backspace"
         cv.putText(frame, self.category, position, font, font_scale, font_color, thickness, line_type)
 
