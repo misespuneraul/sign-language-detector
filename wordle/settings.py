@@ -7,10 +7,11 @@ GREEN = (0, 200, 0)
 BLUE = (0, 0, 255)
 RED = (255, 0, 0)
 YELLOW = (200, 200, 0)
+PINK = (235, 40, 163)
 BGCOLOUR = DARKGREY
 
 # game settings
-WIDTH = 800
+WIDTH = 1920
 HEIGHT = 999
 FPS = 60
 title = "Wordle"
