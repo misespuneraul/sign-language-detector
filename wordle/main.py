@@ -16,18 +16,67 @@ import cv2 as cv
 from mediapipe.tasks import python
 import difflib
 
-import threading
-import time
-import queue
-
 from detector import GestureRecognizer
 
-# sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', 'sign-language-detector')))
-
-# letter_queue = queue.Queue(maxsize=5)
-
-
 nrlitere = 0
+
+def write_something(screen):
+    input_text = ""
+    font = pygame.font.Font(None, 50)
+    clock = pygame.time.Clock()
+    writing = True
+    recognizer = GestureRecognizer(model_path='gesture_recognizer.task')
+
+    while writing:
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                recognizer.cam.release()
+                cv.destroyAllWindows()
+                pygame.quit()
+                quit()
+
+            if event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_RETURN:
+                    writing = False
+                elif event.key == pygame.K_BACKSPACE:
+                    input_text = input_text[:-1]
+                # else:
+                #     input_text += event.unicode
+                
+        ret, frame = recognizer.cam.read()
+        
+        frame = recognizer.process_frame(frame)
+        cv.imshow("Camera", frame)
+        cv.waitKey(1)
+
+        if recognizer.category == "" or recognizer.category == "not detected" or recognizer.category == "none":
+            recognizer.last = cv.getTickCount()
+            recognizer.score = 0
+        if recognizer.category != "" and recognizer.category != "not detected" and recognizer.category != "none" and cv.getTickCount() - recognizer.last >= 2000000000:
+            if recognizer.category != 'backspace':
+                input_text += recognizer.category
+            else:
+                input_text = input_text[:-1]
+            recognizer.last = cv.getTickCount()
+
+        screen.fill(BGCOLOUR)
+        prompt_text = font.render("Write something and press Enter:", True, WHITE)
+        prompt_rect = prompt_text.get_rect(center=(WIDTH // 2, HEIGHT // 3))
+        screen.blit(prompt_text, prompt_rect)
+
+        input_surface = font.render(input_text, True, GREEN)
+        input_rect = input_surface.get_rect(center=(WIDTH // 2, HEIGHT // 2))
+        screen.blit(input_surface, input_rect)
+
+        pygame.display.flip()
+        clock.tick(FPS)
+
+    screen.fill(BGCOLOUR)
+    result_text = font.render(f"You wrote: {input_text}", True, WHITE)
+    result_rect = result_text.get_rect(center=(WIDTH // 2, HEIGHT // 2))
+    screen.blit(result_text, result_rect)
+    pygame.display.flip()
+    pygame.time.wait(2000)
 
 class MainMenu:
     def __init__(self, screen):
@@ -35,7 +84,7 @@ class MainMenu:
         self.clock = pygame.time.Clock()
         self.options = ["Play Wordle", "Write Something", "Quit"]
         self.font = pygame.font.Font(None, 50)
-
+    
     def draw(self, selected_option):
         self.screen.fill(BGCOLOUR)
         title_text = self.font.render("Main Menu", True, WHITE)
@@ -69,61 +118,6 @@ class MainMenu:
             self.draw(selected_option)
             self.clock.tick(FPS)
 
-def write_something(screen):
-    input_text = ""
-    font = pygame.font.Font(None, 50)
-    clock = pygame.time.Clock()
-    writing = True
-    recognizer = GestureRecognizer()
-
-    while writing:
-        for event in pygame.event.get():
-            if event.type == pygame.QUIT:
-                recognizer.cam.release()
-                cv.destroyAllWindows()
-                pygame.quit()
-                quit()
-
-            if event.type == pygame.KEYDOWN:
-                if event.key == pygame.K_RETURN:
-                    writing = False
-                elif event.key == pygame.K_BACKSPACE:
-                    input_text = input_text[:-1]
-                # else:
-                #     input_text += event.unicode
-                
-        ret, frame = recognizer.cam.read()
-        
-        frame = recognizer.process_frame(frame)
-        cv.imshow("Camera", frame)
-        cv.waitKey(1)
-
-        if recognizer.category == "" or recognizer.category == "not detected" or recognizer.category == "none":
-            recognizer.last = cv.getTickCount()
-            recognizer.score = 0
-        if recognizer.category != "" and recognizer.category != "not detected" and recognizer.category != "none" and cv.getTickCount() - recognizer.last >= 2000000000:
-            input_text += recognizer.category
-            recognizer.last = cv.getTickCount()
-
-        screen.fill(BGCOLOUR)
-        prompt_text = font.render("Write something and press Enter:", True, WHITE)
-        prompt_rect = prompt_text.get_rect(center=(WIDTH // 2, HEIGHT // 3))
-        screen.blit(prompt_text, prompt_rect)
-
-        input_surface = font.render(input_text, True, GREEN)
-        input_rect = input_surface.get_rect(center=(WIDTH // 2, HEIGHT // 2))
-        screen.blit(input_surface, input_rect)
-
-        pygame.display.flip()
-        clock.tick(FPS)
-
-    screen.fill(BGCOLOUR)
-    result_text = font.render(f"You wrote: {input_text}", True, WHITE)
-    result_rect = result_text.get_rect(center=(WIDTH // 2, HEIGHT // 2))
-    screen.blit(result_text, result_rect)
-    pygame.display.flip()
-    pygame.time.wait(2000)
-
 class Game:
     def __init__(self):
         pygame.init()
@@ -140,16 +134,61 @@ class Game:
         self.letter = ""
         self.cap = cv.VideoCapture(0)
         self.recognizer = GestureRecognizer()
-    
+        
     def load_camera(self):
         _, self.frame = self.cap.read()
-
+    
+    def load_sign_language_images(self):
+        images = {}
+        # Încărcăm imaginile pentru fiecare literă
+        base_path = os.path.join(os.getcwd(), "wordle\hand_models")
+        for letter in self.alphabet:
+            image_path = os.path.join(base_path, f"{letter}.jpg")  # Căutăm imaginea în folderul 'signs'
+            images[letter] = pygame.image.load(image_path)
+        return images
+    
     def get_letter(self):
         self.frame = self.recognizer.process_frame(self.frame)
         self.letter = self.recognizer.letters[0]
         self.recognizer.letters = self.recognizer.letters[1:]
-
+        
         # In Game.draw
+    def draw_camera_feed(self):
+        if self.frame is not None:
+            # Convert frame from BGR (OpenCV) to RGB (Pygame compatible)
+            frame_rgb = cv.cvtColor(self.frame, cv.COLOR_BGR2RGB)
+            frame_surface = pygame.surfarray.make_surface(cv.transpose(frame_rgb))
+            
+            # Resize the frame to fit within a specific width (e.g., 300px) and maintain aspect ratio
+            frame_width = 500
+            frame_height = int(self.frame.shape[0] * (frame_width / self.frame.shape[1]))
+            frame_surface = pygame.transform.scale(frame_surface, (frame_width, frame_height))
+            
+            # Position the camera feed to the right of the Wordle game
+            x_position = self.screen.get_width() - (self.screen.get_width() - (5 * TILESIZE + 4 * GAPSIZE)) // 2 + 200 # Place it right after the Wordle game area
+            y_position = (self.screen.get_height() - (6 * TILESIZE + 5 * GAPSIZE)) // 2 - 200 # Small top margin
+            
+            # Draw a border and background for the camera feed
+            border_thickness = 5
+            pygame.draw.rect(
+                self.screen,
+                (200, 200, 200),  # Light gray background
+                (x_position - border_thickness, y_position - border_thickness, 
+                frame_width + 2 * border_thickness, frame_height + 2 * border_thickness)
+            )
+            pygame.draw.rect(
+                self.screen,
+                (0, 0, 0),  # Black border
+                (x_position - border_thickness, y_position - border_thickness, 
+                frame_width + 2 * border_thickness, frame_height + 2 * border_thickness),
+                width=border_thickness
+            )
+            
+            # Blit the camera feed onto the screen
+            self.screen.blit(frame_surface, (x_position, y_position))
+
+    
+    
     def draw_suggestions(self):
         if self.recommendations:
             # Position suggestions dynamically to the right of the grid
@@ -190,7 +229,7 @@ class Game:
         self.alphabet = [chr(i) for i in range(65, 91)]  # A-Z
         self.letter_colors = {letter: WHITE for letter in self.alphabet}  # Initially, all letters are white
         self.alph_letter_colors = {letter: WHITE for letter in self.alphabet}
-        
+        self.sign_language_images = self.load_sign_language_images()
         self.cap = cv.VideoCapture(0)
         self.recognizer = GestureRecognizer()
 
@@ -230,7 +269,7 @@ class Game:
         self.add_letter()
         # update every X secunde (5 daca s-a aratat acelasi semn)
         self.frame = self.recognizer.process_frame(self.frame)
-        cv.imshow("Camera", self.frame)
+        #cv.imshow("Camera", self.frame)
         cv.waitKey(1)
 
         if self.recognizer.category == "" or self.recognizer.category == "not detected" or self.recognizer.category == "none":
@@ -239,15 +278,47 @@ class Game:
         if self.recognizer.category != "" and self.recognizer.category != "not detected" and self.recognizer.category != "none" and cv.getTickCount() - self.recognizer.last >= 2000000000:
             # self.recognizer.letters += self.recognizer.category
             # print(self.recognizer.letters)
-            global nrlitere
-            nrlitere += 1
-            if (nrlitere == 5):
-                keyboard.press('enter')
-                keyboard.release('enter')
-                nrlitere = 0
-            print(self.recognizer.category)
-            print(nrlitere)
-            self.text += self.recognizer.category
+            #print(self.text)
+            if len(self.text) < 5 and self.recognizer.category != 'backspace':
+                self.text += self.recognizer.category
+                self.box_animation()
+            else:
+                    self.text = self.text[:-1]
+            if len(self.text) == 5:
+                # check all letters
+                if self.text.lower() in self.words_list:
+                    self.recommendations = []  # Clear suggestions when valid word is entered
+                    self.check_letters()
+
+                    for letter in self.alphabet:
+                        if letter not in self.word and letter in self.text and self.letter_colors[letter] == WHITE:
+                            self.letter_colors[letter] = RED
+
+                    if self.text == self.word or self.current_row + 1 == 6:
+                        if self.text != self.word:
+                            self.end_screen_text = UIElement(
+                                (self.screen.get_width() - (5 * TILESIZE + 4 * GAPSIZE)) // 2,
+                                self.screen.get_height() - 200, f"THE WORD WAS: {self.word}", WHITE)
+                        else:
+                            self.end_screen_text = UIElement(
+                                (self.screen.get_width() - (5 * TILESIZE + 4 * GAPSIZE)) // 2,
+                                self.screen.get_height() - 200, "YOU GUESSED RIGHT", WHITE)
+
+                        self.playing = False
+                        self.end_screen()
+                else:
+                    self.invalid_word = True
+                    if self.text.lower() not in possibilities:
+                        self.recommendations = difflib.get_close_matches(self.text.lower(), possibilities)
+                        #print(self.recommendations)
+                    self.row_animation()
+
+                if not self.invalid_word:  # Clear the word text and recommendations
+                    self.current_row += 1
+                    self.text = ""
+                    self.recommendations = []  # Clear recommendations after valid submission
+            
+            
             self.recognizer.last = cv.getTickCount()
 
         # # Press 'q' to exit the loop
@@ -271,21 +342,16 @@ class Game:
                 tile.draw(self.screen)
 
     def draw_alphabet(self):
-        # Total width needed for a single row
         total_width = 26 * ALPHABET_TILE_SIZE + 25 * ALPHABET_GAPSIZE
         available_width = self.screen.get_width()
 
-        # Check if the alphabet fits in a single row
         if total_width > available_width:
-            # Split alphabet into two rows
             letters_per_row = 13
             rows = 2
         else:
-            # Single row
             letters_per_row = 26
             rows = 1
 
-        # Position letters based on the number of rows
         for row in range(rows):
             margin_x = (available_width - (letters_per_row * ALPHABET_TILE_SIZE + (letters_per_row - 1) * ALPHABET_GAPSIZE)) // 2
             y = self.tiles[-1][0].y + TILESIZE + (row * (ALPHABET_TILE_SIZE + ALPHABET_GAPSIZE)) + 2 * ALPHABET_GAPSIZE
@@ -298,12 +364,32 @@ class Game:
                 letter = self.alphabet[index]
                 x = margin_x + i * (ALPHABET_TILE_SIZE + ALPHABET_GAPSIZE)
 
-                # Draw each letter
+                # Desenăm fiecare literă
                 pygame.draw.rect(self.screen, self.alph_letter_colors[letter], (x, y, ALPHABET_TILE_SIZE, ALPHABET_TILE_SIZE))
                 text_surface = pygame.font.Font(None, 36).render(letter, True, BLACK)
                 text_rect = text_surface.get_rect(center=(x + ALPHABET_TILE_SIZE // 2, y + ALPHABET_TILE_SIZE // 2))
                 self.screen.blit(text_surface, text_rect)
 
+                # Detectăm hover-ul și afișăm semnul limbajului semnelor
+                mouse_x, mouse_y = pygame.mouse.get_pos()
+                if x <= mouse_x <= x + ALPHABET_TILE_SIZE and y <= mouse_y <= y + ALPHABET_TILE_SIZE:
+                    sign_image = self.sign_language_images.get(letter)
+                    if sign_image:
+                        # Afișăm imaginea semnului limbajului semnelor
+                        sign_rect = sign_image.get_rect(center=(300, (self.screen.get_height() - (6 * TILESIZE + 5 * GAPSIZE)) // 2))
+                        
+                        #Highlight letter when hover
+                        pygame.draw.rect(self.screen, PINK, (x, y, ALPHABET_TILE_SIZE, ALPHABET_TILE_SIZE))
+                        text_surface = pygame.font.Font(None, 36).render(letter, True, BLACK)
+                        text_rect = text_surface.get_rect(center=(x + ALPHABET_TILE_SIZE // 2, y + ALPHABET_TILE_SIZE // 2))
+                        self.screen.blit(text_surface, text_rect)
+                        
+                        # Lățimea border-ului
+                        border_width = 5
+                        # Desenăm un border negru în jurul imaginii
+                        pygame.draw.rect(self.screen, (0, 0, 0), sign_rect.inflate(border_width * 2, border_width * 2))
+                        self.screen.blit(sign_image, sign_rect)
+    
     def draw(self):
         self.screen.fill(BGCOLOUR)
         # Display the "Not Enough Letters" or "Invalid Word" text
@@ -330,6 +416,8 @@ class Game:
         self.draw_tiles()
         self.draw_suggestions()
         self.draw_alphabet()
+        self.draw_camera_feed()  # Desenează fluxul video live din cameră
+
 
         pygame.display.flip()
 
@@ -422,16 +510,12 @@ class Game:
         # Algoritm pentru verificarea literelor
         
         copy_word = [x for x in self.word]
-        print(copy_word)
-        print(self.text)
         for i, user_letter in enumerate(self.text):
             colour = LIGHTGREY
             for j, letter in enumerate(copy_word):
-                print(user_letter,letter)
                 if user_letter == letter:
                     colour = YELLOW
                     if i == j:
-                        print("DA!")
                         colour = GREEN
                         copy_word[j] = ""
                         break    
@@ -453,6 +537,7 @@ class Game:
 
     def events(self):
         for event in pygame.event.get():
+            
             if event.type == pygame.QUIT:
                 pygame.quit()
                 quit(0)
@@ -490,7 +575,7 @@ class Game:
                             self.invalid_word = True
                             if self.text.lower() not in possibilities:
                                 self.recommendations = difflib.get_close_matches(self.text.lower(), possibilities)
-                                print(self.recommendations)
+                                #print(self.recommendations)
                             self.row_animation()
 
                         if not self.invalid_word:  # Clear the word text and recommendations
@@ -557,16 +642,4 @@ detector = GestureRecognizer()
 game_loop()
 detector.recognize_gesture()
 
-
 detector.cleanup()
-# cam_thread = threading.Thread(target=cam_loop)
-# game_thread = threading.Thread(target=game_loop)
-
-# cam_thread.start()
-# game_thread.start()
-
-# cam_thread.join()
-# game_thread.join()
-
-# cam.release()
-# cv.destroyAllWindows()
